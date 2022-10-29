@@ -1,1 +1,1 @@
-# R.A.M (Remote Anmnetic Mapper)
+# R.A.M (Remote Anamnestic Mapper)
