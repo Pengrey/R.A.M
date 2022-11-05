@@ -1,21 +1,28 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"math/rand"
 
 	p2p "github.com/leprosus/golang-p2p"
 )
 
-type Hello struct {
+type Message struct {
+	Type string
 	Text string
 }
 
-type Buy struct {
-	Text string
+func RandomName(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
 }
 
-func main() {
+func sendMessage(message Message) {
 	tcp := p2p.NewTCP("localhost", "8080")
 
 	client, err := p2p.NewClient(tcp)
@@ -23,29 +30,26 @@ func main() {
 		log.Panicln(err)
 	}
 
-	var req, res p2p.Data
-
-	for i := 0; i < 10; i++ {
-		req = p2p.Data{}
-		err = req.SetGob(Hello{
-			Text: fmt.Sprintf("User #%d", i+1),
-		})
-		if err != nil {
-			log.Panicln(err)
-		}
-
-		res = p2p.Data{}
-		res, err = client.Send("dialog", req)
-		if err != nil {
-			log.Panicln(err)
-		}
-
-		var buy Buy
-		err = res.GetGob(&buy)
-		if err != nil {
-			log.Panicln(err)
-		}
-
-		fmt.Printf("> Buy: %s\n", buy.Text)
+	req := p2p.Data{}
+	err = req.SetGob(message)
+	if err != nil {
+		log.Panicln(err)
 	}
+
+	_, err = client.Send("dialog", req)
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func sayHello() {
+	helloMsg := Message{
+		Type: "hello",
+		Text: RandomName(10),
+	}
+	sendMessage(helloMsg)
+}
+
+func main() {
+	sayHello()
 }

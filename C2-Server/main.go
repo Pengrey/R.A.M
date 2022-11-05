@@ -10,12 +10,34 @@ import (
 	p2p "github.com/leprosus/golang-p2p"
 )
 
-type Hello struct {
+type Message struct {
+	Type string
 	Text string
 }
 
-type Buy struct {
-	Text string
+// Rewrite Logger
+type Logger interface {
+	Info(msg string)
+	Warn(msg string)
+	Error(msg string)
+}
+
+type stdLogger struct{}
+
+func NewStdLogger() (l *stdLogger) {
+	return &stdLogger{}
+}
+
+func (l *stdLogger) Info(msg string) {
+	return
+}
+
+func (l *stdLogger) Warn(msg string) {
+	return
+}
+
+func (l *stdLogger) Error(msg string) {
+	return
 }
 
 func getArguments() (int, string, bool) {
@@ -42,36 +64,12 @@ func getPrompt() {
 	fmt.Printf("\n[Remote Anamnestic Mapper (v%s)]\n\n", version)
 }
 
-func listAgents() {
+func addAgent() {
 	fmt.Println("[+] Listing Agents.")
+	receiveMessage()
 }
 
-func requestRAM() {
-	fmt.Println("[+] Requesting RAM.")
-}
-
-func menu() {
-	var inpt string
-	for true {
-		fmt.Println("[?] Choose one of the options:\n       1 - List Agents\n       2 - Request Agent's RAM\n       3 - Quit")
-		fmt.Print("> ")
-
-		fmt.Scanln(&inpt)
-
-		switch inpt {
-		case "1":
-			listAgents()
-		case "2":
-			requestRAM()
-		case "3":
-			os.Exit(0)
-		default:
-			fmt.Printf("[!] Option %s doesnt exist!\n", inpt)
-		}
-	}
-}
-
-func serverStart() {
+func receiveMessage() {
 	tcp := p2p.NewTCP("localhost", "8080")
 
 	server, err := p2p.NewServer(tcp)
@@ -79,19 +77,16 @@ func serverStart() {
 		log.Panicln(err)
 	}
 
+	server.SetLogger(NewStdLogger())
+
 	server.SetHandle("dialog", func(ctx context.Context, req p2p.Data) (res p2p.Data, err error) {
-		hello := Hello{}
-		err = req.GetGob(&hello)
+		message := Message{}
+		err = req.GetGob(&message)
 		if err != nil {
 			return
 		}
 
-		fmt.Printf("> Hello: %s\n", hello.Text)
-
-		res = p2p.Data{}
-		err = res.SetGob(Buy{
-			Text: hello.Text,
-		})
+		fmt.Printf("[+] Added agent: %s\n", message.Text)
 
 		return
 	})
@@ -99,6 +94,60 @@ func serverStart() {
 	err = server.Serve()
 	if err != nil {
 		log.Panicln(err)
+	}
+}
+
+func sendMessage(message Message) {
+	tcp := p2p.NewTCP("localhost", "8080")
+
+	client, err := p2p.NewClient(tcp)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	req := p2p.Data{}
+	err = req.SetGob(message)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	_, err = client.Send("dialog", req)
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func requestRAM(port int, password string) {
+	fmt.Println("[+] Requesting RAM.")
+
+	// Check vars given
+	fmt.Println("[*] Port being used: ", port)
+	if password != "" {
+		fmt.Println("[*] Password being used: ", password)
+	} else {
+		fmt.Println("[!] WARNING! The server is being run without a password!")
+	}
+
+}
+
+func menu(port int, password string) {
+	var inpt string
+	for true {
+		fmt.Println("[?] Choose one of the options:\n       1 - Add Agent\n       2 - Request Agent's RAM\n       3 - Quit")
+		fmt.Print("> ")
+
+		fmt.Scanln(&inpt)
+
+		switch inpt {
+		case "1":
+			addAgent()
+		case "2":
+			requestRAM(port, password)
+		case "3":
+			os.Exit(0)
+		default:
+			fmt.Printf("[!] Option %s doesnt exist!\n", inpt)
+		}
 	}
 }
 
@@ -111,14 +160,6 @@ func main() {
 		getPrompt()
 	}
 
-	// Check vars
-	fmt.Println("[*] Port being used: ", port)
-	if password != "" {
-		fmt.Println("[*] Password being used: ", password)
-	} else {
-		fmt.Println("[!] WARNING! The server is being run without a password!")
-	}
-
 	// Start Menu
-	menu()
+	menu(port, password)
 }
