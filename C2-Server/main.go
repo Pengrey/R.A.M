@@ -42,6 +42,14 @@ func getPrompt() {
 	fmt.Printf("\n[Remote Anamnestic Mapper (v%s)]\n\n", version)
 }
 
+func listAgents() {
+	fmt.Println("[+] Listing Agents.")
+}
+
+func requestRAM() {
+	fmt.Println("[+] Requesting RAM.")
+}
+
 func menu() {
 	var inpt string
 	for true {
@@ -52,9 +60,9 @@ func menu() {
 
 		switch inpt {
 		case "1":
-			fmt.Println("Running ")
+			listAgents()
 		case "2":
-			fmt.Println("Running ")
+			requestRAM()
 		case "3":
 			os.Exit(0)
 		default:
