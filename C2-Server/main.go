@@ -1,54 +1,30 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
-
-	p2p "github.com/leprosus/golang-p2p"
 )
+
+var agentsList = []string{}
 
 type Message struct {
 	Type string
 	Text string
 }
 
-// Rewrite Logger
-type Logger interface {
-	Info(msg string)
-	Warn(msg string)
-	Error(msg string)
-}
-
-type stdLogger struct{}
-
-func NewStdLogger() (l *stdLogger) {
-	return &stdLogger{}
-}
-
-func (l *stdLogger) Info(msg string) {
-	return
-}
-
-func (l *stdLogger) Warn(msg string) {
-	return
-}
-
-func (l *stdLogger) Error(msg string) {
-	return
-}
-
-func getArguments() (int, string, bool) {
+func getArguments() (string, string, bool) {
 	// Get port to be used
-	PORT := flag.Int("port", 8080, "Port to be used for communication")
+	PORT := flag.String("port", "8080", "Port to be used for communication")
 
 	// Defining a string flag
 	PASSWD := flag.String("password", "", "Password to be used for authentication of the agents")
 
 	// Define if program is to be run on silent mode
-	SILENT := flag.Bool("silent", false, "Remove prompt from startup")
+	SILENT := flag.Bool("s", false, "Remove prompt from startup")
 
 	// Call flag.Parse() to parse the command-line flags
 	flag.Parse()
@@ -57,93 +33,159 @@ func getArguments() (int, string, bool) {
 }
 
 func getPrompt() {
-	version := "1.0"
+	version := "0.1 beta"
 	prompt := " (                          *     \n )\\ )         (           (  `    \n(()/(         )\\          )\\))(   \n /(_))     ((((_)(       ((_)()\\  \n(_))        )\\ _ )\\      (_()((_) \n| _ \\       (_)_\\(_)     |  \\/  | \n|   /   _    / _ \\    _  | |\\/| | \n|_|_\\  (_)  /_/ \\_\\  (_) |_|  |_| "
 
 	fmt.Println(prompt)
 	fmt.Printf("\n[Remote Anamnestic Mapper (v%s)]\n\n", version)
+	fmt.Println("[?] Available commands:\n       addA - Add Agent\n       reqR - Request Agent's RAM\n       help - See available commands\n       quit - Quit")
 }
 
-func addAgent() {
+func addAgent(port string, password string) {
 	fmt.Println("[+] Listing Agents.")
-	receiveMessage()
+	// Receive msg
+	msg := receiveMessage(port)
+
+	// Check if message is hello type
+	if msg.Type == "hello" {
+		agentsList = append(agentsList, msg.Text)
+		fmt.Printf("[+] Agent [%s] added.\n", msg.Text)
+	} else {
+		fmt.Println("[!] ERROR: message given is misstyped.")
+	}
 }
 
-func receiveMessage() {
-	tcp := p2p.NewTCP("localhost", "8080")
-
-	server, err := p2p.NewServer(tcp)
+func receiveMessage(port string) Message {
+	listen, err := net.Listen("tcp", "localhost:"+port)
 	if err != nil {
-		log.Panicln(err)
+		log.Fatal(err)
+		os.Exit(1)
 	}
 
-	server.SetLogger(NewStdLogger())
+	conn, err := listen.Accept()
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 
-	server.SetHandle("dialog", func(ctx context.Context, req p2p.Data) (res p2p.Data, err error) {
-		message := Message{}
-		err = req.GetGob(&message)
-		if err != nil {
-			return
+	// close listener
+	listen.Close()
+
+	// incoming request
+	buffer := make([]byte, 1024)
+	read_len, err := conn.Read(buffer)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Respond OK
+	conn.Write([]byte("OK"))
+
+	// close conn
+	conn.Close()
+
+	// Get json from bytes
+	var msg Message
+	err = json.Unmarshal(buffer[:read_len], &msg)
+	if err != nil {
+		fmt.Printf("[!] An error occured during json parsing: %v\n", err)
+		os.Exit(1)
+	}
+
+	return msg
+}
+
+func sendMessage(message Message, addr string) {
+	tcpServer, err := net.ResolveTCPAddr("tcp", addr)
+
+	if err != nil {
+		println("[!] ResolveTCPAddr failed:", err.Error())
+		os.Exit(1)
+	}
+
+	// Start connection
+	conn, err := net.DialTCP("tcp", nil, tcpServer)
+	if err != nil {
+		println("[!] Dial failed:", err.Error())
+		os.Exit(1)
+	}
+
+	// Get message json
+	res, err := json.Marshal(message)
+
+	// Send data
+	_, err = conn.Write(res)
+	if err != nil {
+		println("[!] Write data failed:", err.Error())
+		os.Exit(1)
+	}
+
+	// buffer to get data
+	received := make([]byte, 1024)
+	_, err = conn.Read(received)
+	if err != nil {
+		println("[!] Read data failed:", err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Println("[*] Status:", string(received))
+
+	conn.Close()
+}
+
+func requestRAM(port string, password string) {
+	// Send message requesting ram
+	msg := Message{
+		Type: "ram",
+		Text: "RAM",
+	}
+
+	if len(agentsList) > 0 {
+		fmt.Println("[+] Listing Agents saved:")
+		fmt.Println("+-------+--------------------------+")
+		fmt.Println("| Index |    Agent's IP Address    |")
+		fmt.Println("+-------+--------------------------+")
+		for index, element := range agentsList {
+			fmt.Printf("|   %d   |   %s    |\n", index, element)
+			fmt.Println("+-------+--------------------------+")
 		}
 
-		fmt.Printf("[+] Added agent: %s\n", message.Text)
+		var inpt int
 
-		return
-	})
+		for true {
+			fmt.Println("[?] Insert Index of the agent to request")
+			fmt.Print("> ")
 
-	err = server.Serve()
-	if err != nil {
-		log.Panicln(err)
-	}
-}
+			fmt.Scanln(&inpt)
 
-func sendMessage(message Message) {
-	tcp := p2p.NewTCP("localhost", "8080")
-
-	client, err := p2p.NewClient(tcp)
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	req := p2p.Data{}
-	err = req.SetGob(message)
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	_, err = client.Send("dialog", req)
-	if err != nil {
-		log.Panicln(err)
-	}
-}
-
-func requestRAM(port int, password string) {
-	fmt.Println("[+] Requesting RAM.")
-
-	// Check vars given
-	fmt.Println("[*] Port being used: ", port)
-	if password != "" {
-		fmt.Println("[*] Password being used: ", password)
+			if inpt >= 0 && inpt < len(agentsList) {
+				fmt.Println("[+] Requesting RAM.")
+				sendMessage(msg, agentsList[inpt])
+				break
+			} else {
+				fmt.Println("[!] Invalid agent index!")
+			}
+		}
 	} else {
-		fmt.Println("[!] WARNING! The server is being run without a password!")
+		fmt.Println("[!] No Agents are saved!")
 	}
-
 }
 
-func menu(port int, password string) {
+func menu(port string, password string) {
 	var inpt string
 	for true {
-		fmt.Println("[?] Choose one of the options:\n       1 - Add Agent\n       2 - Request Agent's RAM\n       3 - Quit")
 		fmt.Print("> ")
 
 		fmt.Scanln(&inpt)
 
 		switch inpt {
-		case "1":
-			addAgent()
-		case "2":
+		case "help":
+			fmt.Println("[?] Available commands:\n       addA - Add Agent\n       reqR - Request Agent's RAM\n       help - See available commands\n       quit - Quit")
+		case "addA":
+			addAgent(port, password)
+		case "reqR":
 			requestRAM(port, password)
-		case "3":
+		case "quit":
 			os.Exit(0)
 		default:
 			fmt.Printf("[!] Option %s doesnt exist!\n", inpt)
