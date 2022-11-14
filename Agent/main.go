@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 type Message struct {
@@ -48,7 +50,7 @@ func sendMessage(message Message) {
 		os.Exit(1)
 	}
 
-	// Start connection
+	// Start connection, if error
 	conn, err := net.DialTCP("tcp", nil, tcpServer)
 	if err != nil {
 		println("[!] Dial failed:", err.Error())
@@ -78,6 +80,63 @@ func sendMessage(message Message) {
 	conn.Close()
 }
 
+func sendRam() {
+	fmt.Println("[+] Sending RAM dump.")
+	// Send RAM file size to server
+	ramFile, err := os.Open("ram.txt")
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+	defer ramFile.Close()
+
+	// Get file size
+	ramFileStat, err := ramFile.Stat()
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	// Send file chunk number
+	chunkNumber := ramFileStat.Size()/512 + 1
+	ramSize := Message{
+		Type: "size",
+		Text: fmt.Sprintf("%d", chunkNumber),
+	}
+	// Sleep to avoid flooding
+	time.Sleep(1 * time.Second)
+	// Send file
+	sendMessage(ramSize)
+
+	// Read file content chunk by chunk, without loading the whole file into memory
+	file, err := os.Open("ram.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	// Send file content
+	buffer := make([]byte, 512)
+	for {
+		_, err := file.Read(buffer)
+		if err != nil {
+			break
+		}
+		// Send chunk to server where the Text field is the chunk encoded in base64
+		ramChunk := Message{
+			Type: "ram",
+			Text: base64.StdEncoding.EncodeToString(buffer),
+		}
+
+		// Sleep to avoid flooding
+		time.Sleep(300 * time.Millisecond)
+		sendMessage(ramChunk)
+
+		// Clear buffer
+		buffer = make([]byte, 512)
+	}
+}
+
 func handleRequest(conn net.Conn) {
 	// incoming request
 	buffer := make([]byte, 1024)
@@ -101,6 +160,7 @@ func handleRequest(conn net.Conn) {
 	} else {
 		conn.Write([]byte("OK"))
 		fmt.Println("[+] RAM dump requested")
+		sendRam()
 	}
 
 	// close conn
