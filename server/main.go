@@ -46,8 +46,10 @@ func getArguments() (string, bool) {
 func getPrompt() {
 	version := "0.1 beta"
 	prompt := " (                          *     \n )\\ )         (           (  `    \n(()/(         )\\          )\\))(   \n /(_))     ((((_)(       ((_)()\\  \n(_))        )\\ _ )\\      (_()((_) \n| _ \\       (_)_\\(_)     |  \\/  | \n|   /   _    / _ \\    _  | |\\/| | \n|_|_\\  (_)  /_/ \\_\\  (_) |_|  |_| "
+	colorRed := "\033[31m"
+	colorReset := "\033[0m"
 
-	fmt.Println(prompt)
+	fmt.Println(string(colorRed), prompt, string(colorReset))
 	fmt.Printf("\n[Remote Anamnestic Mapper (v%s)]\n\n", version)
 	fmt.Println("[?] Available commands:\n       info - Get server info\n       addA - Add Agent\n       reqR - Request Agent's RAM\n       help - See available commands\n       quit - Quit")
 }
