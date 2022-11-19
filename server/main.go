@@ -186,7 +186,7 @@ func requestRAM(port string) {
 func retreiveRAM(port string) {
 	fmt.Println("[+] Retreiving RAM from agent.")
 	// Prepare command
-	cmd := fmt.Sprintf("nc -l -p %s > ram.txt", port)
+	cmd := fmt.Sprintf("nc -l -p %s > ram", port)
 
 	// Run command with shell
 	err := exec.Command("sh", "-c", cmd).Run()
@@ -195,7 +195,7 @@ func retreiveRAM(port string) {
 		log.Fatal(err)
 	}
 
-	fmt.Println("[+] RAM saved into ram.txt.")
+	fmt.Println("[+] RAM saved into ram.")
 }
 
 func menu(port string) {

