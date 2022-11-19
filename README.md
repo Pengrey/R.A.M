@@ -1,5 +1,18 @@
 # R.A.M (Remote Anamnestic Mapper)
 
+```
+ (                          *     
+ )\ )         (           (  `    
+(()/(         )\          )\))(   
+ /(_))     ((((_)(       ((_)()\  
+(_))        )\ _ )\      (_()((_) 
+| _ \       (_)_\(_)     |  \/  | 
+|   /   _    / _ \    _  | |\/| | 
+|_|_\  (_)  /_/ \_\  (_) |_|  |_| 
+
+[Remote Anamnestic Mapper (v0.1 beta)]
+```
+
 R.A.M is a fast and simple ram dump retrieval tool. Multiple executable to better fit the needs of the user. Written in Go. R.A.M is mainly used to retrieve the memory dump of a remote machine. It can also be used to retrieve the memory dump of a local machine.
 
 ## Installation
