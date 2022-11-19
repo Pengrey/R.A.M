@@ -22,6 +22,12 @@ $ go build -o agent
 $ chmod +x agent
 ```
 
+> 🚧 Warning
+>
+> The agent relies on the tool `memdump` to retrieve the memory dump. You can download it [here](http://www.porcupine.org/forensics/tct.html)
+>
+> The agent should also be run with root privileges.
+
 ## Usage
 
 #### Server
