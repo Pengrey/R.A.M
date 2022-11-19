@@ -1,16 +1,13 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"strconv"
-
-	"github.com/cheggaaa/pb"
+	"os/exec"
 )
 
 var agentsList = []string{}
@@ -18,6 +15,19 @@ var agentsList = []string{}
 type Message struct {
 	Type string
 	Text string
+}
+
+// Get preferred outbound ip of this machine
+func getIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP.String()
 }
 
 func getArguments() (string, string, bool) {
@@ -60,7 +70,7 @@ func addAgent(port string, password string) {
 }
 
 func receiveMessage(port string) Message {
-	listen, err := net.Listen("tcp", "localhost:"+port)
+	listen, err := net.Listen("tcp", "0.0.0.0:"+port)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -177,55 +187,17 @@ func requestRAM(port string, password string) {
 }
 
 func retreiveRAM(port string) {
-	// Retrieve size of the file to be saved
-	size := receiveMessage(port)
+	fmt.Println("[+] Retreiving RAM from agent.")
+	// Prepare command
+	cmd := fmt.Sprintf("nc -l -p %s > ram.txt", port)
 
-	// Number of bytes to be received
-	size_int, err := strconv.Atoi(size.Text)
+	// Run command with shell
+	err := exec.Command("sh", "-c", cmd).Run()
+
 	if err != nil {
-		fmt.Println("[!] ERROR: size of the file is not an integer.")
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
-	// Do a progress bar
-	fmt.Println("[+] Receiving RAM.")
-	bar := pb.StartNew(size_int)
-
-	// For each chunk, save chank into ram file
-	for i := 0; i < size_int; i += 1 {
-		// Receive msg
-		msg := receiveMessage(port)
-
-		// Check if message is ram type
-		if msg.Type == "ram" {
-			// Save chunk into file
-			f, err := os.OpenFile("ram.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// Decode base64 of the chunk and write it into file
-			decoded, err := base64.StdEncoding.DecodeString(msg.Text)
-			if err != nil {
-				fmt.Println("[!] ERROR: base64 decoding failed.")
-				os.Exit(1)
-			}
-
-			if _, err := f.Write(decoded); err != nil {
-				log.Fatal(err)
-			}
-
-			if err := f.Close(); err != nil {
-				log.Fatal(err)
-			}
-
-			bar.Increment()
-		} else {
-			fmt.Println("[!] ERROR: message given is misstyped.")
-		}
-	}
-
-	bar.Finish()
 	fmt.Println("[+] RAM saved into ram.txt.")
 }
 

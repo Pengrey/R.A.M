@@ -1,14 +1,13 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"time"
+	"os/exec"
 )
 
 type Message struct {
@@ -16,17 +15,20 @@ type Message struct {
 	Text string
 }
 
-func getArguments() (string, string) {
+func getArguments() (string, string, string) {
 	// Get port to be used
-	PORT := flag.String("port", "8080", "Port to be used for communication")
+	LPORT := flag.String("LPORT", "8081", "Port to be used for communication")
 
-	// Defining a string flag
-	PASSWD := flag.String("password", "", "Password to be used for authentication of the agents")
+	// Get ip of the server to be used
+	RHOST := flag.String("RHOST", getIP(), "IP of the server")
+
+	// Get port of the server to be used
+	RPORT := flag.String("RPORT", "8080", "Port of the server")
 
 	// Call flag.Parse() to parse the command-line flags
 	flag.Parse()
 
-	return *PORT, *PASSWD
+	return *LPORT, *RHOST, *RPORT
 }
 
 // Get preferred outbound ip of this machine
@@ -42,102 +44,23 @@ func getIP() string {
 	return localAddr.IP.String()
 }
 
-func sendMessage(message Message) {
-	tcpServer, err := net.ResolveTCPAddr("tcp", "localhost:8080")
-
-	if err != nil {
-		println("[!] ResolveTCPAddr failed:", err.Error())
-		os.Exit(1)
-	}
-
-	// Start connection, if error
-	conn, err := net.DialTCP("tcp", nil, tcpServer)
-	if err != nil {
-		println("[!] Dial failed:", err.Error())
-		os.Exit(1)
-	}
-
-	// Get message json
-	res, err := json.Marshal(message)
-
-	// Send data
-	_, err = conn.Write(res)
-	if err != nil {
-		println("[!] Write data failed:", err.Error())
-		os.Exit(1)
-	}
-
-	// buffer to get data
-	received := make([]byte, 1024)
-	_, err = conn.Read(received)
-	if err != nil {
-		println("[!] Read data failed:", err.Error())
-		os.Exit(1)
-	}
-
-	fmt.Println("[*] Status:", string(received))
-
-	conn.Close()
-}
-
-func sendRam() {
+func sendRam(RHOST string, RPORT string) {
 	fmt.Println("[+] Sending RAM dump.")
-	// Send RAM file size to server
-	ramFile, err := os.Open("ram.txt")
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-	defer ramFile.Close()
 
-	// Get file size
-	ramFileStat, err := ramFile.Stat()
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
+	// Prepare command
+	cmd := fmt.Sprintf("cat ram.txt > /dev/tcp/%s/%s", RHOST, RPORT)
 
-	// Send file chunk number
-	chunkNumber := ramFileStat.Size()/512 + 1
-	ramSize := Message{
-		Type: "size",
-		Text: fmt.Sprintf("%d", chunkNumber),
-	}
-	// Sleep to avoid flooding
-	time.Sleep(1 * time.Second)
-	// Send file
-	sendMessage(ramSize)
+	// Run command with shell
+	err := exec.Command("bash", "-c", cmd).Run()
 
-	// Read file content chunk by chunk, without loading the whole file into memory
-	file, err := os.Open("ram.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
 
-	// Send file content
-	buffer := make([]byte, 512)
-	for {
-		_, err := file.Read(buffer)
-		if err != nil {
-			break
-		}
-		// Send chunk to server where the Text field is the chunk encoded in base64
-		ramChunk := Message{
-			Type: "ram",
-			Text: base64.StdEncoding.EncodeToString(buffer),
-		}
-
-		// Sleep to avoid flooding
-		time.Sleep(300 * time.Millisecond)
-		sendMessage(ramChunk)
-
-		// Clear buffer
-		buffer = make([]byte, 512)
-	}
+	fmt.Println("[+] RAM dump sent.")
 }
 
-func handleRequest(conn net.Conn) {
+func handleRequest(conn net.Conn, RHOST string, RPORT string) {
 	// incoming request
 	buffer := make([]byte, 1024)
 	read_len, err := conn.Read(buffer)
@@ -160,31 +83,70 @@ func handleRequest(conn net.Conn) {
 	} else {
 		conn.Write([]byte("OK"))
 		fmt.Println("[+] RAM dump requested")
-		sendRam()
+		sendRam(RHOST, RPORT)
 	}
 
 	// close conn
 	conn.Close()
 }
 
-func sayHello(name string) {
+func sayHello(RHOST string, RPORT string, name string) {
 	fmt.Println("[+] Sending hello message.")
+
+	tcpServer, err := net.ResolveTCPAddr("tcp", RHOST+":"+RPORT)
+
+	if err != nil {
+		println("[!] ResolveTCPAddr failed:", err.Error())
+		os.Exit(1)
+	}
+
+	// Start connection, if error
+	conn, err := net.DialTCP("tcp", nil, tcpServer)
+	if err != nil {
+		println("[!] Dial failed:", err.Error())
+		os.Exit(1)
+	}
+
+	// Prepare message
 	helloMsg := Message{
 		Type: "hello",
 		Text: name,
 	}
-	sendMessage(helloMsg)
+
+	// Get message json
+	res, err := json.Marshal(helloMsg)
+
+	// Send data
+	_, err = conn.Write(res)
+	if err != nil {
+		println("[!] Write data failed:", err.Error())
+		os.Exit(1)
+	}
+
+	// buffer to get data
+	received := make([]byte, 1024)
+	_, err = conn.Read(received)
+	if err != nil {
+		println("[!] Read data failed:", err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Println("[*] Status:", string(received))
+
+	conn.Close()
 }
 
-func startServer(port string) {
-	listen, err := net.Listen("tcp", "0.0.0.0:"+port)
+func startServer(LPORT string, RHOST string, RPORT string) {
+	fmt.Println("[+] Starting server.")
+	listen, err := net.Listen("tcp", "0.0.0.0:"+LPORT)
+	fmt.Println("[+] Listening on port", LPORT)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
 
 	// Send Hello message
-	sayHello(fmt.Sprintf("%s:%s", getIP(), port))
+	sayHello(RHOST, RPORT, fmt.Sprintf("%s:%s", getIP(), LPORT))
 
 	// close listener
 	defer listen.Close()
@@ -194,13 +156,13 @@ func startServer(port string) {
 			log.Fatal(err)
 			os.Exit(1)
 		}
-		go handleRequest(conn)
+		go handleRequest(conn, RHOST, RPORT)
 	}
 }
 
 func main() {
 	// Get arguments from user
-	port, _ := getArguments()
+	LPORT, RHOST, RPORT := getArguments()
 
-	startServer(port)
+	startServer(LPORT, RHOST, RPORT)
 }
