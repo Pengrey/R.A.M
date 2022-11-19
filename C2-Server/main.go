@@ -30,12 +30,9 @@ func getIP() string {
 	return localAddr.IP.String()
 }
 
-func getArguments() (string, string, bool) {
+func getArguments() (string, bool) {
 	// Get port to be used
 	PORT := flag.String("port", "8080", "Port to be used for communication")
-
-	// Defining a string flag
-	PASSWD := flag.String("password", "", "Password to be used for authentication of the agents")
 
 	// Define if program is to be run on silent mode
 	SILENT := flag.Bool("s", false, "Remove prompt from startup")
@@ -43,7 +40,7 @@ func getArguments() (string, string, bool) {
 	// Call flag.Parse() to parse the command-line flags
 	flag.Parse()
 
-	return *PORT, *PASSWD, *SILENT
+	return *PORT, *SILENT
 }
 
 func getPrompt() {
@@ -52,10 +49,10 @@ func getPrompt() {
 
 	fmt.Println(prompt)
 	fmt.Printf("\n[Remote Anamnestic Mapper (v%s)]\n\n", version)
-	fmt.Println("[?] Available commands:\n       addA - Add Agent\n       reqR - Request Agent's RAM\n       help - See available commands\n       quit - Quit")
+	fmt.Println("[?] Available commands:\n       info - Get server info\n       addA - Add Agent\n       reqR - Request Agent's RAM\n       help - See available commands\n       quit - Quit")
 }
 
-func addAgent(port string, password string) {
+func addAgent(port string) {
 	fmt.Println("[+] Listing Agents.")
 	// Receive msg
 	msg := receiveMessage(port)
@@ -147,7 +144,7 @@ func sendMessage(message Message, addr string) {
 	conn.Close()
 }
 
-func requestRAM(port string, password string) {
+func requestRAM(port string) {
 	// Send message requesting ram
 	msg := Message{
 		Type: "ram",
@@ -201,7 +198,7 @@ func retreiveRAM(port string) {
 	fmt.Println("[+] RAM saved into ram.txt.")
 }
 
-func menu(port string, password string) {
+func menu(port string) {
 	var inpt string
 	for true {
 		fmt.Print("> ")
@@ -210,11 +207,13 @@ func menu(port string, password string) {
 
 		switch inpt {
 		case "help":
-			fmt.Println("[?] Available commands:\n       addA - Add Agent\n       reqR - Request Agent's RAM\n       help - See available commands\n       quit - Quit")
+			fmt.Println("[?] Available commands:\n       info - Get server info\n       addA - Add Agent\n       reqR - Request Agent's RAM\n       help - See available commands\n       quit - Quit")
+		case "info":
+			fmt.Printf("[*] Server info:\n       IP: %s\n       Port: %s\n", getIP(), port)
 		case "addA":
-			addAgent(port, password)
+			addAgent(port)
 		case "reqR":
-			requestRAM(port, password)
+			requestRAM(port)
 		case "quit":
 			os.Exit(0)
 		default:
@@ -225,7 +224,7 @@ func menu(port string, password string) {
 
 func main() {
 	// Get arguments from user
-	port, password, silent := getArguments()
+	port, silent := getArguments()
 
 	// Print Prompt
 	if !silent {
@@ -233,5 +232,5 @@ func main() {
 	}
 
 	// Start Menu
-	menu(port, password)
+	menu(port)
 }
