@@ -66,6 +66,7 @@ func sendRam(RHOST string, RPORT string) {
 	}
 
 	fmt.Println("[+] RAM dump sent.")
+	exec.Command("/bin/bash", "-c", "rmmod lime").Run()
 }
 
 func handleRequest(conn net.Conn, RHOST string, RPORT string) {
