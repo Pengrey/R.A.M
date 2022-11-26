@@ -15,8 +15,9 @@ import (
 var agentsList = []string{}
 
 type Message struct {
-	Type string
-	Text string
+	Type     string
+	Text     string
+	LimePort string
 }
 
 // Get preferred outbound ip of this machine
@@ -63,7 +64,7 @@ func addAgent(port string) {
 
 	// Check if message is hello type
 	if msg.Type == "hello" {
-		agentsList = append(agentsList, msg.Text)
+		agentsList = append(agentsList, msg.Text+":"+msg.LimePort)
 		fmt.Printf("[+] Agent [%s] added.\n", msg.Text)
 	} else {
 		fmt.Println("[!] ERROR: message given is misstyped.")
@@ -179,7 +180,7 @@ func requestRAM(port string) {
 				// Sleep for 1 second to give time to the server to be ready
 				time.Sleep(1 * time.Second)
 
-				retreiveRAM(port, strings.Split(agentsList[inpt], ":")[0])
+				retreiveRAM(strings.Split(agentsList[inpt], ":")[2], strings.Split(agentsList[inpt], ":")[0])
 				break
 			} else {
 				fmt.Println("[!] Invalid agent index!")
