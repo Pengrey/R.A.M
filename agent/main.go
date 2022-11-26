@@ -46,14 +46,14 @@ func getIP() string {
 	return localAddr.IP.String()
 }
 
-func sendRam(RHOST string, LPORT string) {
+func sendRam(RHOST string, LimePORT string) {
 	fmt.Println("[+] Sending RAM dump.")
 
 	// Prepare command
 
 	//cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("memdump -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)) // Used for tests
 	//cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("insmod  -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)) // Used for lime tests
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("insmod /var/lib/dkms/lime-forensics/1.9.1-3/6.0.6-76060006-generic/x86_64/module/lime.ko \"path=tcp:%s format=lime\"", LPORT)) // Used for lime tests
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("insmod /var/lib/dkms/lime-forensics/1.9.1-3/6.0.6-76060006-generic/x86_64/module/lime.ko \"path=tcp:%s format=lime\"", LimePORT)) // Used for lime tests
 	// cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("memdump > /dev/tcp/%s/%s", RHOST, RPORT)) // Used in production
 
 	// Execute command
@@ -66,7 +66,7 @@ func sendRam(RHOST string, LPORT string) {
 	exec.Command("/bin/bash", "-c", "rmmod lime").Run()
 }
 
-func handleRequest(conn net.Conn, RHOST string, LPORT string) {
+func handleRequest(conn net.Conn, RHOST string, LimePORT string) {
 	// incoming request
 	buffer := make([]byte, 1024)
 	read_len, err := conn.Read(buffer)
@@ -89,7 +89,7 @@ func handleRequest(conn net.Conn, RHOST string, LPORT string) {
 	} else {
 		conn.Write([]byte("OK"))
 		fmt.Println("[+] RAM dump requested")
-		sendRam(RHOST, LPORT)
+		sendRam(RHOST, LimePORT)
 	}
 
 	// close conn
@@ -163,7 +163,7 @@ func startServer(LPORT string, RHOST string, RPORT string, LimePORT string) {
 			log.Fatal(err)
 			os.Exit(1)
 		}
-		go handleRequest(conn, RHOST, LPORT)
+		go handleRequest(conn, RHOST, LimePORT)
 	}
 }
 
