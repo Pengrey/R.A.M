@@ -191,6 +191,7 @@ func retreiveRAM(port string, addr string) {
 	fmt.Println("[+] Retreiving RAM from agent.")
 	// Prepare command
 	fmt.Println(addr)
+	fmt.Println(port)
 	cmd := fmt.Sprintf("nc %s %s > ram", addr, port)
 
 	// Run command with shell
