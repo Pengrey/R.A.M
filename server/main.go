@@ -179,7 +179,7 @@ func requestRAM(port string) {
 				// Sleep for 1 second to give time to the server to be ready
 				time.Sleep(1 * time.Second)
 
-				retreiveRAM(strings.Split(agentsList[inpt], ":")[1], strings.Split(agentsList[inpt], ":")[0])
+				retreiveRAM(port, strings.Split(agentsList[inpt], ":")[0])
 				break
 			} else {
 				fmt.Println("[!] Invalid agent index!")
