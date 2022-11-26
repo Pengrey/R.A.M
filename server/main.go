@@ -174,7 +174,7 @@ func requestRAM(port string) {
 			if inpt >= 0 && inpt < len(agentsList) {
 				fmt.Println("[+] Requesting RAM.")
 				sendMessage(msg, agentsList[inpt])
-				retreiveRAM(port)
+				retreiveRAM(port, agentsList[inpt])
 				break
 			} else {
 				fmt.Println("[!] Invalid agent index!")
@@ -185,10 +185,10 @@ func requestRAM(port string) {
 	}
 }
 
-func retreiveRAM(port string) {
+func retreiveRAM(port string, addr string) {
 	fmt.Println("[+] Retreiving RAM from agent.")
 	// Prepare command
-	cmd := fmt.Sprintf("nc -l -p %s > ram", port)
+	cmd := fmt.Sprintf("nc %s %s > ram", addr, port)
 
 	// Run command with shell
 	err := exec.Command("sh", "-c", cmd).Run()
@@ -202,7 +202,7 @@ func retreiveRAM(port string) {
 
 func menu(port string) {
 	var inpt string
-	for true {
+	for {
 		fmt.Print("> ")
 
 		fmt.Scanln(&inpt)

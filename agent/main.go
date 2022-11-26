@@ -52,7 +52,11 @@ func sendRam(RHOST string, RPORT string) {
 	time.Sleep(1 * time.Second)
 
 	// Prepare command
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("memdump -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)) // Used for tests
+
+	//cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("memdump -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)) // Used for tests
+	//cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("insmod  -s 409600 > /dev/tcp/%s/%s", RHOST, RPORT)) // Used for lime tests
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("insmod  /var/lib/dkms/lime-forensics/1.9.1-3/6.0.6-76060006-generic/x86_64/module/lime.ko path=tcp:%s format=lime", RPORT)) // Used for lime tests
+
 	// cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("memdump > /dev/tcp/%s/%s", RHOST, RPORT)) // Used in production
 
 	// Execute command
