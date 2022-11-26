@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"time"
 )
 
 type Message struct {
@@ -47,9 +46,6 @@ func getIP() string {
 
 func sendRam(RHOST string, RPORT string) {
 	fmt.Println("[+] Sending RAM dump.")
-
-	// Sleep for 1 second to give time to the server to be ready
-	time.Sleep(1 * time.Second)
 
 	// Prepare command
 

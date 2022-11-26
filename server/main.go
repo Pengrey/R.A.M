@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 var agentsList = []string{}
@@ -175,6 +176,8 @@ func requestRAM(port string) {
 			if inpt >= 0 && inpt < len(agentsList) {
 				fmt.Println("[+] Requesting RAM.")
 				sendMessage(msg, agentsList[inpt])
+				// Sleep for 1 second to give time to the server to be ready
+				time.Sleep(1 * time.Second)
 
 				retreiveRAM(strings.Split(agentsList[inpt], ":")[1], strings.Split(agentsList[inpt], ":")[0])
 				break
