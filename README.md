@@ -37,7 +37,7 @@ $ chmod +x agent
 
 > 🚧 Warning
 >
-> The agent relies on the tool `memdump` to retrieve the memory dump. You can download it [here](http://www.porcupine.org/forensics/tct.html)
+> The agent relies on the tool `LiME` (Linux Memory Extractor) to retrieve the memory dump. You can download it [here](https://github.com/504ensicsLabs/LiME)
 >
 > The agent should also be run with root privileges.
 
